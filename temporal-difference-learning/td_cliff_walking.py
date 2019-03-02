@@ -55,10 +55,9 @@ def get_epsilon_greedy_action(Q, nA, state, epsilon):
     return np.random.choice(np.arange(nA), p=policy)
 
 
-def temporal_difference_learning(env, num_episodes, alpha, method='sarsa', gamma=1.0):
+def temporal_difference_learning(env, num_episodes, alpha, method='sarsa', gamma=1.0, epsilon=None):
     """Function that implements TD-learning using different solution strategies.
 
-    Args:
     Args:
         env (:obj: `gym.env`): An OpenAI Black Jack env instance.
         num_episodes (int): Number of episodes to generate.
@@ -67,13 +66,14 @@ def temporal_difference_learning(env, num_episodes, alpha, method='sarsa', gamma
         method (str): The TD-learning method to apply, either 'sarsa', 'sarsamax' or
             'expected_sarsa'.
         gamma (float): The discount factor gramma.
-
+        epsilon (float): The probability of non-greedy action epsilon (b/w 0. and 1.).
 
     Returns:
         Q (:obj:`defaultdict`): Dictionary of the form Q[state][action].
         returns (:obj:`np.array`): Numpy array of total returns for each
             episode, for plotting.
     """
+    sys.stdout.flush()
 
     # initialize action-value function (empty dictionary of arrays)
     Q = defaultdict(lambda: np.zeros(env.nA))
@@ -87,7 +87,7 @@ def temporal_difference_learning(env, num_episodes, alpha, method='sarsa', gamma
     for i_episode in range(1, num_episodes+1):
 
         # monitor progress
-        print("\rEpisode {}/{}".format(i_episode, num_episodes), end="")
+        print("\rAlgorithm: {}, Episode: {}/{}".format(method, i_episode, num_episodes), end="")
         sys.stdout.flush()
 
         # reset environment
@@ -95,10 +95,13 @@ def temporal_difference_learning(env, num_episodes, alpha, method='sarsa', gamma
 
         # epsilon is reduced with every episode, so
         # the algorithm becomes more and more greedy
-        epsilon = 1.0 / i_episode
+        if epsilon:
+            eps = epsilon
+        else:
+            eps = 1.0 / i_episode
 
         # get the first epsilon-greedy action
-        action = get_epsilon_greedy_action(Q, nA, state, epsilon)
+        action = get_epsilon_greedy_action(Q, nA, state, eps)
 
         # initialize return
         total_return = 0
@@ -111,7 +114,7 @@ def temporal_difference_learning(env, num_episodes, alpha, method='sarsa', gamma
 
             if not done:
 
-                next_action = get_epsilon_greedy_action(Q, nA, next_state, epsilon)
+                next_action = get_epsilon_greedy_action(Q, nA, next_state, eps)
 
                 if method=='sarsa':
 
@@ -128,7 +131,7 @@ def temporal_difference_learning(env, num_episodes, alpha, method='sarsa', gamma
                 if method=='expected_sarsa':
 
                     # for expected sarsa we need the entire policy for this action
-                    policy = get_epsilon_greedy_policy(Q, nA, next_state, epsilon)
+                    policy = get_epsilon_greedy_policy(Q, nA, next_state, eps)
 
                     # update the Q table using the dot product of policy and the Q table and next state
                     Q[state][action] += alpha * (reward + gamma * \
@@ -158,9 +161,9 @@ if __name__ == '__main__':
     env = gym.make('CliffWalking-v0')
 
     # obtain the estimated optimal policy and corresponding action-value function
-    Q_sarsa, G_sarsa = temporal_difference_learning(env, 5000, .01, 'sarsa')
-    Q_sarsamax, G_sarsamax = temporal_difference_learning(env, 5000, .01, 'sarsamax')
-    Q_expsarsa, G_expsarsa = temporal_difference_learning(env, 5000, .01, 'expected_sarsa')
+    Q_sarsa, G_sarsa = temporal_difference_learning(env, 5000, .01, 'sarsa', 1.0, 0.1)
+    Q_sarsamax, G_sarsamax = temporal_difference_learning(env, 5000, .01, 'sarsamax', 1.0, 0.1)
+    Q_expsarsa, G_expsarsa = temporal_difference_learning(env, 5000, .01, 'expected_sarsa', 1.0, 0.1)
 
     df = pd.DataFrame(
         {
@@ -178,4 +181,6 @@ if __name__ == '__main__':
     plt.plot(df.expsarsa.rolling(window=window_size, center=False).mean())
     plt.ylabel("Average return at episode")
     plt.xlabel("Episode")
+    #plt.ylim([-100, -5])
+    #plt.xlim([0, 500])
     plt.show()
