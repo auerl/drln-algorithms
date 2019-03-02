@@ -124,10 +124,9 @@ def generate_episode_using_policy(env, epsilon, Q):
     while True:
 
         probs = [epsilon / nA, 1 - epsilon + (epsilon / nA)]
-        np.random.choice(np.arange(nA), p=probs)
 
         # Chose between exploration and exploitation
-        choice = np.random.choice(np.arange(nA), p=probs)
+        choice = np.random.choice(np.arange(2), p=probs)
 
         # Exploitation case, we use the currently best policy
         if choice == 1 and state in Q:
@@ -153,7 +152,7 @@ def mc_control_glie(env, num_episodes, eps_start=1.0, alpha=0.02, gamma=1.0,
     (greedy in the limit of infinite  exploration) strategy and a every-visit
     constant-alpha approach.
 
-    Args
+    Args:
         env (:obj: `gym.env`): An OpenAI Black Jack env instance.
         num_episodes (int): Number of episodes to generate.
         eps_start (float): Starting value for epsilon factor in epsilon-greedy
